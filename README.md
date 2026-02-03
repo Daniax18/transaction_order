@@ -1,0 +1,1 @@
+The main objective of this system is to enable secure order transactions through video recognition, using RSA encryption to protect the data and ensure transaction integrity.
