@@ -1,12 +1,13 @@
 workspace "Order transactions Plateform" "C4 content Diagram" {
     model {
-        user = person "User" "A user of the system"
+        userWeb = person "User" "Web" "Web platform user"
+        userMobile = person "User_" "Mobile" "Mobile platform user"
 
         transactionPlateform = softwareSystem "Order Plateform" "Allows users to place orders and securize their transactions" "Internal" {
             // Zoom in the container of the transaction plateform : rendu/container.png
             frontend = container "Frontend Web" "Frontend app that provides user to create/verify transactions" "Next.js"  "front"
 
-            apiGateway = container "API Gateway" "Single entry point - Routing." "REST API" 
+            bffGateway = container "BFF Gateway" "Orchestrates API calls between frontend and backend services." "REST API" "java"
 
             authService = container "Auth Service" "User management using Keycloack server." "REST API" "csharp"
 
@@ -21,19 +22,26 @@ workspace "Order transactions Plateform" "C4 content Diagram" {
             notificationDb = container "Notification Database" "Storage for notifications." "MongoDB" "mongo"
 
             auditService = container "Audit Service" "Logs of transaction platform activities." "REST API" "java"
+
+            RabbitMQ = container "RabbitMQ" "Message broker" "RabbitMQ"
         }
         
         minio = softwareSystem "MinIO Object Storage" "Video storage" "External, minIo"
 
-        RabbitMQ = softwareSystem "RabbitMQ" "Message broker" "External,RabbitMQ"
+        
+
+        userWeb -> transactionPlateform "Uses"
+        userMobile -> transactionPlateform "Uses"
+        transactionPlateform -> minio "Stores videos in"
 
         // Relationships between containers
-        user -> frontend "Users create/verify transactions using"
-        apiGateway -> authService "Authenticate or create account using"
-        frontend -> apiGateway "Proceeds API calls using"
-        apiGateway -> transactionService "Create/verify transaction order using"
-        apiGateway -> notificationService "Get notifications using"
-        apiGateway -> auditService "Get Logs actions using"
+        userWeb -> frontend "Users create/verify transactions using"
+        userMobile -> frontend "Users create/verify transactions using"
+        bffGateway -> authService "Authenticate or create account using"
+        frontend -> bffGateway "Proceeds API calls using"
+        bffGateway -> transactionService "Create/verify transaction order using"
+        bffGateway -> notificationService "Get notifications using"
+        bffGateway -> auditService "Get Logs actions using"
         authService -> RabbitMQ "send user action events using"
         transactionService -> RabbitMQ "send transaction events using"
         RabbitMQ -> notificationService "send transaction notification events to"
@@ -48,6 +56,11 @@ workspace "Order transactions Plateform" "C4 content Diagram" {
     }
 
     views {
+
+        systemContext transactionPlateform {
+            include *
+            //autolayout lr
+        }
 
         container transactionPlateform {
             include *
@@ -113,3 +126,5 @@ workspace "Order transactions Plateform" "C4 content Diagram" {
         theme default
     }
 }
+
+# To starts : docker run -it --rm -p 8080:8080   -v ".:/usr/local/structurizr" structurizr/lite
