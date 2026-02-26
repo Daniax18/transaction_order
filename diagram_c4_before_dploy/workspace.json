@@ -4,7 +4,7 @@
   "documentation" : { },
   "id" : 1,
   "lastModifiedAgent" : "structurizr-ui",
-  "lastModifiedDate" : "2026-02-25T10:07:56Z",
+  "lastModifiedDate" : "2026-02-26T20:31:46Z",
   "model" : {
     "people" : [ {
       "description" : "Web",
@@ -16,13 +16,13 @@
       "relationships" : [ {
         "description" : "Uses",
         "destinationId" : "3",
-        "id" : "15",
+        "id" : "17",
         "sourceId" : "1",
         "tags" : "Relationship"
       }, {
         "description" : "Users create/verify transactions using",
         "destinationId" : "4",
-        "id" : "18",
+        "id" : "20",
         "sourceId" : "1",
         "tags" : "Relationship"
       } ],
@@ -37,13 +37,13 @@
       "relationships" : [ {
         "description" : "Uses",
         "destinationId" : "3",
-        "id" : "16",
+        "id" : "18",
         "sourceId" : "2",
         "tags" : "Relationship"
       }, {
         "description" : "Users create/verify transactions using",
         "destinationId" : "4",
-        "id" : "19",
+        "id" : "21",
         "sourceId" : "2",
         "tags" : "Relationship"
       } ],
@@ -61,7 +61,7 @@
         "relationships" : [ {
           "description" : "Proceeds API calls using",
           "destinationId" : "5",
-          "id" : "21",
+          "id" : "23",
           "sourceId" : "4",
           "tags" : "Relationship"
         } ],
@@ -78,25 +78,31 @@
         "relationships" : [ {
           "description" : "Authenticate or create account using",
           "destinationId" : "6",
-          "id" : "20",
-          "sourceId" : "5",
-          "tags" : "Relationship"
-        }, {
-          "description" : "Create/verify transaction order using",
-          "destinationId" : "8",
           "id" : "22",
           "sourceId" : "5",
           "tags" : "Relationship"
         }, {
-          "description" : "Get notifications using",
+          "description" : "Create/verify transaction order using",
           "destinationId" : "10",
-          "id" : "23",
+          "id" : "24",
+          "sourceId" : "5",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Get notifications using",
+          "destinationId" : "12",
+          "id" : "25",
           "sourceId" : "5",
           "tags" : "Relationship"
         }, {
           "description" : "Get Logs actions using",
-          "destinationId" : "12",
-          "id" : "24",
+          "destinationId" : "14",
+          "id" : "26",
+          "sourceId" : "5",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Creating SK/PK keys using",
+          "destinationId" : "7",
+          "id" : "27",
           "sourceId" : "5",
           "tags" : "Relationship"
         } ],
@@ -112,23 +118,56 @@
         },
         "relationships" : [ {
           "description" : "send user action events using",
-          "destinationId" : "13",
-          "id" : "25",
+          "destinationId" : "15",
+          "id" : "28",
           "sourceId" : "6",
           "tags" : "Relationship"
         }, {
           "description" : "Reads from and writes user data using",
-          "destinationId" : "7",
-          "id" : "29",
+          "destinationId" : "9",
+          "id" : "33",
           "sourceId" : "6",
           "tags" : "Relationship"
         } ],
         "tags" : "Element,Container,csharp",
         "technology" : "REST API"
       }, {
-        "description" : "Storage for users and table keys.",
+        "description" : "Key management service for managing encryption keys.",
         "documentation" : { },
         "id" : "7",
+        "name" : "KMS Service",
+        "properties" : {
+          "structurizr.dsl.identifier" : "kmsService"
+        },
+        "relationships" : [ {
+          "description" : "send key management events using",
+          "destinationId" : "15",
+          "id" : "32",
+          "sourceId" : "7",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Reads from and writes encryption keys using",
+          "destinationId" : "8",
+          "id" : "36",
+          "sourceId" : "7",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container,java",
+        "technology" : "REST API"
+      }, {
+        "description" : "Storage for encryption keys.",
+        "documentation" : { },
+        "id" : "8",
+        "name" : "KMS Database",
+        "properties" : {
+          "structurizr.dsl.identifier" : "kmsDb"
+        },
+        "tags" : "Element,Container,postgres",
+        "technology" : "PostgreSQL"
+      }, {
+        "description" : "Storage for users and table keys.",
+        "documentation" : { },
+        "id" : "9",
         "name" : "User Database",
         "properties" : {
           "structurizr.dsl.identifier" : "userDb"
@@ -138,28 +177,28 @@
       }, {
         "description" : "Transaction handling, upload, signatures.",
         "documentation" : { },
-        "id" : "8",
+        "id" : "10",
         "name" : "Metadata Service",
         "properties" : {
           "structurizr.dsl.identifier" : "transactionService"
         },
         "relationships" : [ {
           "description" : "send transaction events using",
-          "destinationId" : "13",
-          "id" : "26",
-          "sourceId" : "8",
+          "destinationId" : "15",
+          "id" : "29",
+          "sourceId" : "10",
           "tags" : "Relationship"
         }, {
           "description" : "Reads from and writes transaction metadata using",
-          "destinationId" : "9",
-          "id" : "30",
-          "sourceId" : "8",
+          "destinationId" : "11",
+          "id" : "34",
+          "sourceId" : "10",
           "tags" : "Relationship"
         }, {
           "description" : "Store and retrieve videos using",
-          "destinationId" : "14",
-          "id" : "32",
-          "sourceId" : "8",
+          "destinationId" : "16",
+          "id" : "37",
+          "sourceId" : "10",
           "tags" : "Relationship"
         } ],
         "tags" : "Element,Container,csharp",
@@ -167,7 +206,7 @@
       }, {
         "description" : "Storage for transaction metadata and signatures.",
         "documentation" : { },
-        "id" : "9",
+        "id" : "11",
         "name" : "Transaction Database",
         "properties" : {
           "structurizr.dsl.identifier" : "transactionDb"
@@ -177,16 +216,16 @@
       }, {
         "description" : "Allows users to get notification on transaction statut changed",
         "documentation" : { },
-        "id" : "10",
+        "id" : "12",
         "name" : "Notification service",
         "properties" : {
           "structurizr.dsl.identifier" : "notificationService"
         },
         "relationships" : [ {
           "description" : "Reads from and writes notification data using",
-          "destinationId" : "11",
-          "id" : "31",
-          "sourceId" : "10",
+          "destinationId" : "13",
+          "id" : "35",
+          "sourceId" : "12",
           "tags" : "Relationship"
         } ],
         "tags" : "Element,Container,csharp",
@@ -194,7 +233,7 @@
       }, {
         "description" : "Storage for notifications.",
         "documentation" : { },
-        "id" : "11",
+        "id" : "13",
         "name" : "Notification Database",
         "properties" : {
           "structurizr.dsl.identifier" : "notificationDb"
@@ -204,7 +243,7 @@
       }, {
         "description" : "Logs of transaction platform activities.",
         "documentation" : { },
-        "id" : "12",
+        "id" : "14",
         "name" : "Audit Service",
         "properties" : {
           "structurizr.dsl.identifier" : "auditService"
@@ -214,22 +253,22 @@
       }, {
         "description" : "Message broker",
         "documentation" : { },
-        "id" : "13",
+        "id" : "15",
         "name" : "RabbitMQ",
         "properties" : {
           "structurizr.dsl.identifier" : "RabbitMQ"
         },
         "relationships" : [ {
           "description" : "send transaction notification events to",
-          "destinationId" : "10",
-          "id" : "27",
-          "sourceId" : "13",
+          "destinationId" : "12",
+          "id" : "30",
+          "sourceId" : "15",
           "tags" : "Relationship"
         }, {
           "description" : "send transaction/auth log events to",
-          "destinationId" : "12",
-          "id" : "28",
-          "sourceId" : "13",
+          "destinationId" : "14",
+          "id" : "31",
+          "sourceId" : "15",
           "tags" : "Relationship"
         } ],
         "tags" : "Element,Container",
@@ -244,8 +283,8 @@
       },
       "relationships" : [ {
         "description" : "Stores videos in",
-        "destinationId" : "14",
-        "id" : "17",
+        "destinationId" : "16",
+        "id" : "19",
         "sourceId" : "3",
         "tags" : "Relationship"
       } ],
@@ -253,7 +292,7 @@
     }, {
       "description" : "Video storage",
       "documentation" : { },
-      "id" : "14",
+      "id" : "16",
       "name" : "MinIO Object Storage",
       "properties" : {
         "structurizr.dsl.identifier" : "minio"
@@ -265,7 +304,7 @@
   "properties" : {
     "structurizr.inspection.info" : "0",
     "structurizr.inspection.ignore" : "0",
-    "structurizr.inspection.error" : "25",
+    "structurizr.inspection.error" : "28",
     "structurizr.inspection.warning" : "0"
   },
   "views" : {
@@ -326,98 +365,85 @@
     "containerViews" : [ {
       "dimensions" : {
         "height" : 4520,
-        "width" : 3870
+        "width" : 4620
       },
       "elements" : [ {
         "id" : "1",
-        "x" : 15,
-        "y" : 2335
+        "x" : 35,
+        "y" : 2985
       }, {
         "id" : "2",
-        "x" : 20,
-        "y" : 1565
+        "x" : 45,
+        "y" : 1620
       }, {
         "id" : "4",
-        "x" : 650,
-        "y" : 1965
+        "x" : 510,
+        "y" : 2285
       }, {
         "id" : "5",
-        "x" : 1340,
-        "y" : 1960
+        "x" : 1300,
+        "y" : 2265
       }, {
         "id" : "6",
-        "x" : 2105,
-        "y" : 1635
+        "x" : 2195,
+        "y" : 1090
       }, {
         "id" : "7",
-        "x" : 3355,
-        "y" : 1690
+        "x" : 2180,
+        "y" : 1610
       }, {
         "id" : "8",
-        "x" : 2085,
-        "y" : 975
+        "x" : 3135,
+        "y" : 1675
       }, {
         "id" : "9",
-        "x" : 3340,
-        "y" : 1005
+        "x" : 3140,
+        "y" : 1130
       }, {
         "id" : "10",
-        "x" : 2125,
-        "y" : 2750
+        "x" : 2205,
+        "y" : 2820
       }, {
         "id" : "11",
-        "x" : 3345,
-        "y" : 2780
+        "x" : 3175,
+        "y" : 2925
       }, {
         "id" : "12",
-        "x" : 2115,
-        "y" : 2145
+        "x" : 2175,
+        "y" : 2265
       }, {
         "id" : "13",
-        "x" : 3365,
-        "y" : 2160
+        "x" : 3195,
+        "y" : 2340
       }, {
         "id" : "14",
-        "x" : 1325,
-        "y" : 990
+        "x" : 2280,
+        "y" : 3640
+      }, {
+        "id" : "15",
+        "x" : 3965,
+        "y" : 2360
+      }, {
+        "id" : "16",
+        "x" : 3175,
+        "y" : 3430
       } ],
       "externalSoftwareSystemBoundariesVisible" : false,
       "generatedKey" : true,
       "key" : "Container-001",
       "name" : "Container View: Order Plateform",
       "order" : 2,
-      "paperSize" : "A2_Portrait",
+      "paperSize" : "A2_Landscape",
       "relationships" : [ {
-        "id" : "18"
-      }, {
-        "id" : "19"
-      }, {
         "id" : "20"
       }, {
         "id" : "21"
       }, {
         "id" : "22"
       }, {
-        "id" : "23",
-        "vertices" : [ {
-          "x" : 1810,
-          "y" : 2560
-        }, {
-          "x" : 1810,
-          "y" : 2560
-        }, {
-          "x" : 1895,
-          "y" : 2695
-        } ]
+        "id" : "23"
       }, {
-        "id" : "24",
-        "vertices" : [ {
-          "x" : 1987,
-          "y" : 2108
-        }, {
-          "x" : 1970,
-          "y" : 2110
-        } ]
+        "id" : "24"
       }, {
         "id" : "25"
       }, {
@@ -425,22 +451,54 @@
       }, {
         "id" : "27"
       }, {
-        "id" : "28"
+        "id" : "28",
+        "vertices" : [ {
+          "x" : 3595,
+          "y" : 1620
+        } ]
       }, {
         "id" : "29"
       }, {
-        "id" : "30"
+        "id" : "30",
+        "vertices" : [ {
+          "x" : 3425,
+          "y" : 2255
+        }, {
+          "x" : 3135,
+          "y" : 2260
+        } ]
       }, {
-        "id" : "31"
+        "id" : "31",
+        "vertices" : [ {
+          "x" : 4010,
+          "y" : 3720
+        }, {
+          "x" : 3555,
+          "y" : 3800
+        } ]
       }, {
         "id" : "32"
+      }, {
+        "id" : "33"
+      }, {
+        "id" : "34"
+      }, {
+        "id" : "35"
+      }, {
+        "id" : "36"
+      }, {
+        "id" : "37",
+        "vertices" : [ {
+          "x" : 2900,
+          "y" : 3375
+        } ]
       } ],
       "softwareSystemId" : "3"
     } ],
     "systemContextViews" : [ {
       "dimensions" : {
         "height" : 2016,
-        "width" : 1941
+        "width" : 1516
       },
       "elements" : [ {
         "id" : "1",
@@ -455,22 +513,22 @@
         "x" : 533,
         "y" : 908
       }, {
-        "id" : "14",
-        "x" : 1335,
-        "y" : 900
+        "id" : "16",
+        "x" : 533,
+        "y" : 1508
       } ],
       "enterpriseBoundaryVisible" : true,
       "generatedKey" : true,
       "key" : "SystemContext-001",
       "name" : "System Context View: Order Plateform",
       "order" : 1,
-      "paperSize" : "A4_Portrait",
+      "paperSize" : "A5_Portrait",
       "relationships" : [ {
-        "id" : "15"
-      }, {
-        "id" : "16"
-      }, {
         "id" : "17"
+      }, {
+        "id" : "18"
+      }, {
+        "id" : "19"
       } ],
       "softwareSystemId" : "3"
     } ]

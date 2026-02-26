@@ -11,6 +11,10 @@ workspace "Order transactions Plateform" "C4 content Diagram" {
 
             authService = container "Auth Service" "User management using Keycloack server." "REST API" "csharp"
 
+            kmsService = container "KMS Service" "Key management service for managing encryption keys." "REST API" "java"
+
+            kmsDb = container "KMS Database" "Storage for encryption keys." "PostgreSQL" "postgres"
+
             userDb = container "User Database" "Storage for users and table keys." "PostgreSQL" "postgres"
 
             transactionService = container "Metadata Service" "Transaction handling, upload, signatures." "REST API" "csharp"
@@ -42,15 +46,18 @@ workspace "Order transactions Plateform" "C4 content Diagram" {
         bffGateway -> transactionService "Create/verify transaction order using"
         bffGateway -> notificationService "Get notifications using"
         bffGateway -> auditService "Get Logs actions using"
+        bffGateway -> kmsService "Creating SK/PK keys using"
         authService -> RabbitMQ "send user action events using"
         transactionService -> RabbitMQ "send transaction events using"
         RabbitMQ -> notificationService "send transaction notification events to"
         RabbitMQ -> auditService "send transaction/auth log events to"
+        kmsService -> RabbitMQ "send key management events using"
 
         // Relations between service and database
         authService -> userDb "Reads from and writes user data using"
         transactionService -> transactionDb "Reads from and writes transaction metadata using"
         notificationService -> notificationDb "Reads from and writes notification data using"
+        kmsService -> kmsDb "Reads from and writes encryption keys using"
 
         transactionService -> minio "Store and retrieve videos using"
     }
