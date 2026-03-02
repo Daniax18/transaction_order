@@ -1,0 +1,5 @@
+﻿## Commandes dotnet CLI
+
+dotnet ef migrations add InitialScript --output-dir Infrastructure/Data/Migrations
+dotnet ef database update
+dotnet run
