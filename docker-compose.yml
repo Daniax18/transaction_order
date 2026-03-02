@@ -1,0 +1,44 @@
+version: '3.9'
+
+services:
+  # User Service
+  user-db:
+    image: postgres:15
+    container_name: user-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: user_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - user_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - transaction-network
+
+  auth-service:
+    build: ./src/services/AuthService
+    container_name: auth-service
+    ports:
+      - "5001:8081"
+    environment:
+      ConnectionStrings__UserDb: "Host=user-db;Port=5432;Database=user_db;Username=postgres;Password=postgres"
+      ASPNETCORE_URLS: "http://+:8081"
+    depends_on:
+      user-db:
+        condition: service_healthy
+    networks:
+      - transaction-network
+
+networks:
+  transaction-network:
+    driver: bridge
+
+volumes:
+  user_data:
