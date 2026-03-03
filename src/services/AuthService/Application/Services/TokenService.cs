@@ -7,7 +7,7 @@ using System.Text;
 
 namespace AuthService.Application.Services
 {
-    public class TokenService : ITokenService
+    public class TokenService : ITokenService   // TODO : should be in infrastructure layer?
     {
 
         private readonly IConfiguration _configuration;
@@ -33,7 +33,6 @@ namespace AuthService.Application.Services
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
-
         }
 
         private List<Claim> GetClaims(ApplicationUser user, RoleUser role)
