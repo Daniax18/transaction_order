@@ -9,10 +9,10 @@ WORKDIR /app
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["AuditService/AuditService.csproj", "AuditService/"]
-RUN dotnet restore "./AuditService/AuditService.csproj"
+COPY ["AuditService.csproj", "."]
+RUN dotnet restore "./AuditService.csproj"
 COPY . .
-WORKDIR "/src/AuditService"
+WORKDIR "/src/."
 RUN dotnet build "./AuditService.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # Cette étape permet de publier le projet de service à copier dans la phase finale

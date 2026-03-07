@@ -30,9 +30,24 @@ services:
     environment:
       ConnectionStrings__UserDb: "Host=user-db;Port=5432;Database=user_db;Username=postgres;Password=postgres"
       ASPNETCORE_URLS: "http://+:8081"
+      RABBITMQ_HOST: rabbitmq
     depends_on:
       user-db:
         condition: service_healthy
+    networks:
+      - transaction-network
+
+  # Log Service
+  log-service:
+    build: ./src/services/AuditService
+    container_name: log-service
+    ports:
+      - "5002:8081"
+    environment:
+      ASPNETCORE_URLS: "http://+:8081"
+      RABBITMQ_HOST: rabbitmq
+    volumes:
+      - ./logs:/app/logs
     networks:
       - transaction-network
 
@@ -51,6 +66,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - transaction-network
 
 networks:
   transaction-network:

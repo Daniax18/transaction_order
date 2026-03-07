@@ -1,7 +1,9 @@
 ﻿
 
 using AuthService.Application.Interfaces;
-using AuthService.Application.Services;
+using AuthService.Application.UseCases;
+using AuthService.Infrastructure.Messaging;
+using AuthService.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -45,6 +47,8 @@ namespace AuthService.Application
 
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IAuthService, UserService>();
+            services.AddSingleton<RabbitMQPublisher>();
+            services.AddScoped<ILogService, LogService>();
             return services;
         }
     }
