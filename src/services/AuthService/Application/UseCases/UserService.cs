@@ -1,22 +1,30 @@
-﻿using AuthService.Application.DTOs.login;
+﻿using AuthService.Application.DTOs.log;
+using AuthService.Application.DTOs.login;
 using AuthService.Application.DTOs.register;
 using AuthService.Application.Interfaces;
 using AuthService.Domain;
 using Microsoft.AspNetCore.Identity;
 
-namespace AuthService.Application.Services
+namespace AuthService.Application.UseCases
 {
     public class UserService : IAuthService
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly ITokenService _tokenService;
+        private readonly ILogService _logService;
 
-        public UserService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, ITokenService tokenService)
+        public UserService(
+            UserManager<ApplicationUser> userManager, 
+            SignInManager<ApplicationUser> signInManager, 
+            ITokenService tokenService,
+            ILogService logService
+        )
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _tokenService = tokenService;
+            _logService = logService;
         }
 
         public async Task<Result<LoginResponseDto>> LoginAsync(LoginDto request)
@@ -43,6 +51,15 @@ namespace AuthService.Application.Services
                 Role = userRole,
                 IsFirstLogin = user.IsFirstLogin
             };
+            
+            await _logService.LogInfo(new LogEventDto
+            {
+                UserId = user.Id,
+                ServiceName = "AUTH-SERVICE",
+                ActionName = "LOGIN",
+                ActionStatus = "SUCCESS",
+                ActionTime = DateTime.UtcNow
+            });
 
             return Result<LoginResponseDto>.Ok(response);
         }
@@ -74,6 +91,15 @@ namespace AuthService.Application.Services
                 Email = user.Email ?? string.Empty,
                 Role = request.Role
             };
+
+            await _logService.LogInfo(new LogEventDto
+            {
+                UserId = user.Id,
+                ServiceName = "AUTH-SERVICE",
+                ActionName = "REGISTER",
+                ActionStatus = "SUCCESS",
+                ActionTime = DateTime.UtcNow
+            });
 
             return Result<RegisterResponseDto>.Ok(response);
         }

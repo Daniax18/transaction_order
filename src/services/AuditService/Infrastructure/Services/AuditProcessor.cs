@@ -7,20 +7,28 @@ using System.Threading.Tasks;
 
 namespace AuditService.Infrastructure.Services
 {
-    internal class AuditProcessor : IAuditProcessor
+    public class AuditProcessor : IAuditProcessor
     {
         private readonly object _fileLock = new object();
-        private readonly string _logFilePath = "mainapp.log";
+        private readonly string _logFilePath = "logs/mainapp.log";
+        private readonly ILogger<AuditProcessor> _logger;
+
+        public AuditProcessor(ILogger<AuditProcessor> logger)
+        {
+            _logger = logger;
+        }
+
         public async Task ProcessAuditEventAsync(string userId, string serviceName, string actionName, string actionStatus, DateTime actionTime)
         {
             string logEntry = $"{actionTime:yyyy-MM-dd HH:mm:ss} | User: {userId} | Service: {serviceName} | Action: {actionName} | Status: {actionStatus}";
+            _logger.LogInformation("[Audit Service] Message : " + logEntry);
             lock (_fileLock)
             {
                 RotateLogIfNeeded();
 
                 System.IO.File.AppendAllText(_logFilePath, logEntry + Environment.NewLine);
             }
-
+            _logger.LogInformation("[Audit Service] Process end");
             await Task.CompletedTask;
         }
 

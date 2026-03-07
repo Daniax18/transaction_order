@@ -5,7 +5,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace AuthService.Application.Services
+namespace AuthService.Infrastructure.Services
 {
     public class TokenService : ITokenService   // TODO : should be in infrastructure layer?
     {
