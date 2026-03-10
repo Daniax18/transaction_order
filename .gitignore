@@ -1,0 +1,8 @@
+.structurizr/
+.vs/
+.vscode/
+bin/
+obj/
+.env
+
+/logs

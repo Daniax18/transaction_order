@@ -1,0 +1,122 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+
+jobs:
+  # ─────────────────────────────────────────────
+  #  AUDIT SERVICE  (C# / .NET 8)
+  # ─────────────────────────────────────────────
+  audit-service:
+    name: AuditService
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # SonarCloud needs full history
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Install SonarCloud scanner
+        run: dotnet tool install --global dotnet-sonarscanner
+
+      - name: Restore dependencies
+        working-directory: src/services/AuditService
+        run: dotnet restore
+
+      - name: Begin SonarCloud analysis
+        working-directory: src/services/AuditService
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          dotnet sonarscanner begin \
+            /k:"Daniax18_transaction_order" \
+            /o:"daniax18" \
+            /d:sonar.host.url="https://sonarcloud.io" \
+            /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+
+      - name: Build
+        working-directory: src/services/AuditService
+        run: dotnet build --no-restore --configuration Release
+
+      - name: End SonarCloud analysis
+        working-directory: src/services/AuditService
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+
+  # ─────────────────────────────────────────────
+  #  AUTH SERVICE  (C# / .NET 8)
+  # ─────────────────────────────────────────────
+  auth-service:
+    name: AuthService
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Install SonarCloud scanner
+        run: dotnet tool install --global dotnet-sonarscanner
+
+      - name: Restore dependencies
+        working-directory: src/services/AuthService
+        run: dotnet restore
+
+      - name: Begin SonarCloud analysis
+        working-directory: src/services/AuthService
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          dotnet sonarscanner begin \
+            /k:"Daniax18_transaction_order" \
+            /o:"daniax18" \
+            /d:sonar.host.url="https://sonarcloud.io" \
+            /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+
+      - name: Build
+        working-directory: src/services/AuthService
+        run: dotnet build --no-restore --configuration Release
+
+      - name: End SonarCloud analysis
+        working-directory: src/services/AuthService
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+
+  # ─────────────────────────────────────────────
+  #  DOCKER BUILD  (tous les services)
+  # ─────────────────────────────────────────────
+  docker-build:
+    name: Docker Compose – Validate & Build
+    runs-on: ubuntu-latest
+    needs: [audit-service, auth-service]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate docker-compose.yml
+        run: docker compose config
+
+      - name: Build images
+        run: docker compose build --parallel
