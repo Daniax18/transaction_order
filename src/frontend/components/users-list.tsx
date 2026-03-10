@@ -1,75 +1,93 @@
 "use client"
+import { useState, useEffect } from "react"
 import {
-  MoreHorizontal,
-  Mail,
-  Key,
-  Trash2,
   Shield,
   ShieldCheck,
-  ShieldAlert,
-  Clock,
-  CheckCircle,
-  XCircle,
+  Loader2,
+  AlertCircle,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { cn } from "@/lib/utils"
+import { authService } from "@/lib/services/auth.service"
+import type { UserDto } from "@/lib/types/auth"
 
 interface UsersListProps {
   searchQuery: string
+  refreshTrigger?: number // Pour forcer le rafraîchissement
 }
-
-const users = [
-  {
-    id: "1",
-    name: "Jean Dupont",
-    email: "jean.dupont@barbichetz.fr",
-    level: "Comptable",
-  },
-  {
-    id: "2",
-    name: "Marie Martin",
-    email: "marie.martin@barbichetz.fr",
-    level: "Assistante",
-  },
-]
 
 const roleIcons = {
-  Administrateur: ShieldCheck,
-  Comptable: Shield,
-  Assistante: ShieldAlert,
+  ADMIN: ShieldCheck,
+  USER: Shield,
 }
 
-const statusConfig = {
-  active: { label: "Actif", variant: "default" as const, className: "bg-primary/10 text-primary border-primary/20" },
-  pending: {
-    label: "En attente",
-    variant: "secondary" as const,
-    className: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
-  },
-  inactive: {
-    label: "Inactif",
-    variant: "secondary" as const,
-    className: "bg-muted text-muted-foreground border-muted",
-  },
+const roleLabels = {
+  ADMIN: "Administrateur",
+  USER: "Utilisateur",
 }
 
-export function UsersList({ searchQuery }: UsersListProps) {
+export function UsersList({ searchQuery, refreshTrigger }: UsersListProps) {
+  const [users, setUsers] = useState<UserDto[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+        const usersData = await authService.users()
+        setUsers(usersData)
+      } catch (err: any) {
+        const errorMessage = err.response?.data || err.message || "Erreur lors du chargement des utilisateurs"
+        setError(typeof errorMessage === "string" ? errorMessage : "Erreur de chargement")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchUsers()
+  }, [refreshTrigger]) // Recharger seulement quand refreshTrigger change, pas à chaque recherche
+
   const filteredUsers = users.filter(
     (user) =>
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()),
+      user.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.role.toLowerCase().includes(searchQuery.toLowerCase()),
   )
+
+  if (isLoading) {
+    return (
+      <Card className="bg-card border-border">
+        <CardHeader>
+          <CardTitle className="text-lg">Utilisateurs</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card className="bg-card border-border">
+        <CardHeader>
+          <CardTitle className="text-lg">Utilisateurs</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card className="bg-card border-border">
@@ -77,70 +95,56 @@ export function UsersList({ searchQuery }: UsersListProps) {
         <CardTitle className="text-lg">Utilisateurs ({filteredUsers.length})</CardTitle>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow className="border-border hover:bg-transparent">
-              <TableHead>Utilisateur</TableHead>
-              <TableHead className="w-12"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredUsers.map((user) => {
-              const RoleIcon = roleIcons[user.level as keyof typeof roleIcons] || Shield
+        {filteredUsers.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            {searchQuery ? "Aucun utilisateur trouvé" : "Aucun utilisateur"}
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow className="border-border hover:bg-transparent">
+                <TableHead>Utilisateur</TableHead>
+                <TableHead>Rôle</TableHead>
+                <TableHead className="w-12"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredUsers.map((user, index) => {
+                const RoleIcon = roleIcons[user.role as keyof typeof roleIcons] || Shield
+                const roleLabel = roleLabels[user.role as keyof typeof roleLabels] || user.role
 
-              return (
-                <TableRow key={user.id} className="border-border">
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-9 w-9">
-                        <AvatarFallback className="bg-secondary text-foreground text-xs">
-                          {user.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium text-foreground">{user.name}</p>
-                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                return (
+                  <TableRow key={`${user.userName}-${index}`} className="border-border">
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-9 w-9">
+                          <AvatarFallback className="bg-secondary text-foreground text-xs">
+                            {user.userName
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .toUpperCase()
+                              .substring(0, 2)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium text-foreground">{user.userName}</p>
+                          <p className="text-xs text-muted-foreground">{user.email}</p>
+                        </div>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <RoleIcon className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm">{user.level}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-card border-border">
-                        <DropdownMenuItem>
-                          <Mail className="w-4 h-4 mr-2" />
-                          Envoyer un e-mail
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Key className="w-4 h-4 mr-2" />
-                          Réinitialiser mot de passe
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator className="bg-border" />
-                        <DropdownMenuItem className="text-destructive focus:text-destructive">
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Désactiver le compte
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <RoleIcon className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm">{roleLabel}</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        )}
       </CardContent>
     </Card>
   )

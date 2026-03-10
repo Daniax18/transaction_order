@@ -12,6 +12,12 @@ import { UserPlus, Search, Filter } from "lucide-react"
 export function UsersPageContent() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
+
+  const handleUserCreated = () => {
+    // Incrémenter refreshTrigger pour forcer le rafraîchissement de la liste
+    setRefreshTrigger((prev) => prev + 1)
+  }
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -29,26 +35,24 @@ export function UsersPageContent() {
               Nouvel utilisateur
             </Button>
           </div>
-
-          {/* Barre de recherche et filtres */}
           <div className="flex items-center gap-4">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Rechercher un utilisateur..."
+                placeholder="Rechercher par nom, email ou rôle..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 bg-input border-border"
+                className="pl-9 bg-secondary border-border"
               />
             </div>
-            {/* <Button variant="outline" size="icon">
-              <Filter className="w-4 h-4" />
-            </Button> */}
           </div>
+          <UsersList searchQuery={searchQuery} refreshTrigger={refreshTrigger} />
 
-          <UsersList searchQuery={searchQuery} />
-
-          <CreateUserDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen} />
+          <CreateUserDialog
+            open={isCreateDialogOpen}
+            onOpenChange={setIsCreateDialogOpen}
+            onUserCreated={handleUserCreated}
+          />
         </main>
       </div>
     </div>

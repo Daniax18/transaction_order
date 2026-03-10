@@ -1,9 +1,12 @@
 ﻿using AuthService.Application.DTOs.log;
 using AuthService.Application.DTOs.login;
 using AuthService.Application.DTOs.register;
+using AuthService.Application.DTOs.users;
 using AuthService.Application.Interfaces;
 using AuthService.Domain;
+using AuthService.Infrastructure.Data;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace AuthService.Application.UseCases
 {
@@ -11,12 +14,14 @@ namespace AuthService.Application.UseCases
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly ApplicationDbContext _context;
         private readonly ITokenService _tokenService;
         private readonly ILogService _logService;
 
         public UserService(
             UserManager<ApplicationUser> userManager, 
             SignInManager<ApplicationUser> signInManager, 
+            ApplicationDbContext context,
             ITokenService tokenService,
             ILogService logService
         )
@@ -25,6 +30,7 @@ namespace AuthService.Application.UseCases
             _signInManager = signInManager;
             _tokenService = tokenService;
             _logService = logService;
+            _context = context;
         }
 
         public async Task<Result<LoginResponseDto>> LoginAsync(LoginDto request)
@@ -108,6 +114,27 @@ namespace AuthService.Application.UseCases
         {
             await _signInManager.SignOutAsync();
             return "User logged out successfully";
+        }
+
+        public async Task<Result<List<UsersDto>>> GetUsersAsync()
+        {
+            var usersWithRoles = await _context.Users
+                .Select(u => new UsersDto
+                {
+                    UserId = u.Id,
+                    UserName = u.UserName ?? string.Empty,
+                    Email = u.Email ?? string.Empty,
+                    Role = _context.UserRoles
+                                .Where(ur => ur.UserId == u.Id)
+                                .Join(_context.Roles,
+                                      ur => ur.RoleId,
+                                      r => r.Id,
+                                      (ur, r) => r.Name)
+                                .FirstOrDefault() ?? "USER"
+                })
+                .ToListAsync();
+
+            return Result<List<UsersDto>>.Ok(usersWithRoles);
         }
     }
 }

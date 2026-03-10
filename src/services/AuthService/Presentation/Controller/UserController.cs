@@ -43,5 +43,17 @@ namespace AuthService.Presentation.Controller
             return Ok(result.Value);
 
         }
+
+        [HttpGet("users")]
+        [Authorize(Roles = "ADMIN")]
+        public async Task<IActionResult> GetUsers()
+        {
+            var result = await _authService.GetUsersAsync();
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result.ErrorMessage);
+            }
+            return Ok(result.Value);
+        }
     }
 }
