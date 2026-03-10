@@ -1,16 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
   LayoutDashboard,
-  Video,
   Users,
-  Shield,
   FileText,
-  Settings,
   Key,
   Bell,
   ChevronLeft,
@@ -19,22 +16,32 @@ import {
   Banknote,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { authService } from "@/lib/services/auth.service"
 
-const navigation = [
-  { name: "Tableau de bord", href: "/", icon: LayoutDashboard },
-  { name: "Ordres de virement", href: "/virements", icon: Banknote },
-  { name: "Messages Vidéo", href: "/messages", icon: Video },
-  { name: "Utilisateurs", href: "/users", icon: Users },
-  // { name: "Gestion des Clés", href: "/keys", icon: Key },
-  // { name: "Notifications", href: "/notifications", icon: Bell },
-  // { name: "Journal d'Audit", href: "/audit", icon: FileText },
-  // { name: "Sécurité", href: "/security", icon: Shield },
-  // { name: "Paramètres", href: "/settings", icon: Settings },
+const allNavigationItems = [
+  { name: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard, roles: ["ADMIN", "USER"] },
+  { name: "Ordres de virement", href: "/virements", icon: Banknote, roles: ["USER"] },
+  { name: "Gestion key", href: "/keys", icon: Key, roles: ["USER"] },
+  { name: "Utilisateurs", href: "/users", icon: Users, roles: ["ADMIN"] },
+  { name: "Notifications", href: "/notifications", icon: Bell, roles: ["USER"] },
+  { name: "Audit", href: "/audit", icon: FileText, roles: ["ADMIN"] },
 ]
 
 export function DashboardSidebar() {
   const [collapsed, setCollapsed] = useState(false)
+  const [userRole, setUserRole] = useState<string | null>(null)
   const pathname = usePathname()
+
+  useEffect(() => {
+    // Récupérer le rôle de l'utilisateur depuis localStorage (côté client uniquement)
+    setUserRole(authService.getRole())
+  }, [])
+
+  // Filtrer les éléments de navigation selon le rôle
+  const navigation = allNavigationItems.filter((item) => {
+    if (!userRole) return false
+    return item.roles.includes(userRole)
+  })
 
   return (
     <aside
@@ -47,7 +54,7 @@ export function DashboardSidebar() {
         <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-500/10">
           <Lock className="w-4 h-4 text-emerald-500" />
         </div>
-        {!collapsed && <span className="font-semibold text-sidebar-foreground">Moustass vidéo</span>}
+        {!collapsed && <span className="font-semibold text-sidebar-foreground">Ordre de transaction</span>}
       </div>
 
       <nav className="flex-1 p-3 space-y-1">

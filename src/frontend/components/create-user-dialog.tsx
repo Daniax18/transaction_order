@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
-import { Eye, EyeOff, Copy, RefreshCw, CheckCircle } from "lucide-react"
+import { Eye, EyeOff, Copy, RefreshCw, CheckCircle, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,12 +16,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { authService } from "@/lib/services/auth.service"
 
 interface CreateUserDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onUserCreated?: () => void // Callback pour rafraîchir la liste
 }
 
 function generateTempPassword(): string {
@@ -33,54 +34,56 @@ function generateTempPassword(): string {
   return password
 }
 
-export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) {
+export function CreateUserDialog({ open, onOpenChange, onUserCreated }: CreateUserDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
-  const [copied, setCopied] = useState(false)
 
   const [formData, setFormData] = useState({
-    name: "",
-    lastName: "",
+    userName: "",
     email: "",
     role: "",
-    tempPassword: generateTempPassword(),
-    sendEmail: true,
-    requireMfa: true,
+    password: "",
   })
-
-  const regeneratePassword = () => {
-    setFormData({ ...formData, tempPassword: generateTempPassword() })
-  }
-
-  const copyPassword = async () => {
-    await navigator.clipboard.writeText(formData.tempPassword)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setError(null)
 
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    try {
 
-    setSuccess(true)
-    setIsLoading(false)
-
-    setTimeout(() => {
-      onOpenChange(false)
-      setSuccess(false)
-      setFormData({
-        name: "",
-        lastName: "",
-        email: "",
-        role: "",
-        tempPassword: generateTempPassword(),
-        sendEmail: true,
-        requireMfa: true,
+      await authService.register({
+        userName: formData.userName,
+        email: formData.email,
+        password: formData.password,
+        role: formData.role
       })
-    }, 2000)
+
+      setSuccess(true)
+      setIsLoading(false)
+
+      // Rafraîchir la liste des utilisateurs
+      if (onUserCreated) {
+        onUserCreated()
+      }
+
+      setTimeout(() => {
+        onOpenChange(false)
+        setSuccess(false)
+        setFormData({
+          userName: "",
+          email: "",
+          role: "",
+          password: generateTempPassword(),
+        })
+      }, 2000)
+    } catch (err: any) {
+      const errorMessage = err.response?.data || err.message || "Erreur lors de la création de l'utilisateur"
+      setError(typeof errorMessage === "string" ? errorMessage : "Erreur de création")
+      setIsLoading(false)
+    }
   }
 
   if (success) {
@@ -93,9 +96,6 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
             </div>
             <div>
               <h2 className="text-xl font-semibold text-foreground">Utilisateur créé</h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                {formData.sendEmail ? "Un e-mail d'invitation a été envoyé." : "Le compte a été créé avec succès."}
-              </p>
             </div>
           </div>
         </DialogContent>
@@ -114,29 +114,22 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                placeholder="Jean"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-                className="bg-input border-border"
-              />
-            </div>
-            {/* <div className="space-y-2">
-              <Label htmlFor="lastName">Nom</Label>
-              <Input
-                id="lastName"
-                placeholder="Dupont"
-                value={formData.lastName}
-                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                required
-                className="bg-input border-border"
-              />
-            </div> */}
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="userName">Nom d'utilisateur</Label>
+            <Input
+              id="userName"
+              value={formData.userName}
+              onChange={(e) => setFormData({ ...formData, userName: e.target.value })}
+              required
+              className="bg-input border-border"
+            />
           </div>
 
           <div className="space-y-2">
@@ -144,7 +137,6 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
             <Input
               id="email"
               type="email"
-              placeholder="jean.dupont@barbichetz.fr"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required
@@ -159,9 +151,8 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                 <SelectValue placeholder="Sélectionner un rôle" />
               </SelectTrigger>
               <SelectContent className="bg-card border-border">
-                <SelectItem value="admin">Administrateur</SelectItem>
-                <SelectItem value="operator">Opérateur</SelectItem>
-                <SelectItem value="auditor">Auditeur</SelectItem>
+                <SelectItem value="USER">Utilisateur</SelectItem>
+                <SelectItem value="ADMIN">Administrateur</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -173,8 +164,8 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
               <div className="relative flex-1">
                 <Input
                   type={showPassword ? "text" : "password"}
-                  value={formData.tempPassword}
-                  readOnly
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="bg-input border-border pr-10 font-mono text-sm"
                 />
                 <button
@@ -185,48 +176,11 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              {/* <Button type="button" variant="outline" size="icon" onClick={regeneratePassword}>
-                <RefreshCw className="w-4 h-4" />
-              </Button>
-              <Button type="button" variant="outline" size="icon" onClick={copyPassword}>
-                {copied ? <CheckCircle className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
-              </Button> */}
             </div>
             <p className="text-xs text-muted-foreground">
               L'utilisateur devra changer ce mot de passe lors de sa première connexion.
             </p>
           </div>
-
-          {/* Options */}
-          {/* <div className="space-y-3 p-3 rounded-lg bg-secondary/50 border border-border">
-            <div className="flex items-center gap-3">
-              <Checkbox
-                id="sendEmail"
-                checked={formData.sendEmail}
-                onCheckedChange={(checked) => setFormData({ ...formData, sendEmail: checked as boolean })}
-              />
-              <Label htmlFor="sendEmail" className="text-sm font-normal cursor-pointer">
-                Envoyer un e-mail d'invitation avec les identifiants
-              </Label>
-            </div>
-            <div className="flex items-center gap-3">
-              <Checkbox
-                id="requireMfa"
-                checked={formData.requireMfa}
-                onCheckedChange={(checked) => setFormData({ ...formData, requireMfa: checked as boolean })}
-              />
-              <Label htmlFor="requireMfa" className="text-sm font-normal cursor-pointer">
-                Exiger l'activation de l'authentification à deux facteurs (MFA)
-              </Label>
-            </div>
-          </div> */}
-
-          {/* <Alert className="bg-primary/5 border-primary/20">
-            <AlertDescription className="text-sm text-muted-foreground">
-              L'utilisateur recevra un lien de connexion valide 24 heures. Il devra définir un nouveau mot de passe et
-              configurer la MFA.
-            </AlertDescription>
-          </Alert> */}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

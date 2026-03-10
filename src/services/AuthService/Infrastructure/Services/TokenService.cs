@@ -39,9 +39,9 @@ namespace AuthService.Infrastructure.Services
         {
             var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.UserName ?? string.Empty),
-                new Claim(ClaimTypes.Role, role.ToString()),
+                new Claim("userId", user.Id.ToString()),
+                new Claim("userName", user.UserName ?? string.Empty),
+                new Claim("role", role.ToString()),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
             return claims;

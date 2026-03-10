@@ -11,6 +11,16 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddControllers();  
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 // Add services to the container.
 
 var app = builder.Build();
@@ -63,6 +73,7 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();        // Active l’authentification (lecture du token JWT)
 app.UseAuthorization();         // Active l’autorisation ([Authorize])
+app.UseCors("AllowFrontend");        // Active la politique CORS pour autoriser le frontend à accéder à l’API
 
 app.MapControllers();           // Mappe les routes des controllers
 

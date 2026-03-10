@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState , useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Lock, Eye, EyeOff, Shield, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -10,33 +10,66 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { authService } from "@/lib/services/auth.service"
+import { isAuthenticated } from "@/lib/utils/jwt.utils"
 
 export default function LoginPage() {
   const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [isChecking, setIsChecking] = useState(true)
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   })
+
+    // Supprimer le token au chargement de la page
+  useEffect(() => {
+    authService.logout()
+  }, [])
+
+    // Vérifier si l'utilisateur est déjà authentifié
+  useEffect(() => {
+    if (isAuthenticated()) {
+      router.push("/virements")
+    } else {
+      setIsChecking(false)
+    }
+  }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError("")
 
-    // Simulation de connexion
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    try {
+      // Appel à l'API backend
+      const authResponse = await authService.login({
+        email: formData.email,
+        password: formData.password,
+      })
 
-    // Simuler une première connexion nécessitant un changement de mot de passe
-    if (formData.password === "temp123") {
-      router.push("/change-password?first=true")
-    } else {
-      router.push("/")
+      // Enregistrer le token et les infos utilisateur
+      authService.saveAuthData(authResponse)
+
+      // Vérifier si c'est la première connexion
+      // if (authResponse.firstLogin) {
+        // Rediriger vers la page de changement de mot de passe
+      //  router.push("/change-password?first=true")
+      // } else {
+        // Rediriger vers le dashboard
+      //  router.push("/dashboard")
+      // }
+
+      router.push("/dashboard")
+    } catch (err: any) {
+      // Gérer les erreurs
+      const errorMessage = err.response?.data || err.message || "Une erreur est survenue lors de la connexion"
+      setError(typeof errorMessage === "string" ? errorMessage : "Erreur de connexion")
+    } finally {
+      setIsLoading(false)
     }
-
-    setIsLoading(false)
   }
 
   return (
@@ -48,8 +81,8 @@ export default function LoginPage() {
             <Lock className="w-8 h-8 text-primary" />
           </div>
           <div className="text-center">
-            <h1 className="text-2xl font-semibold text-foreground">Barbichetz</h1>
-            <p className="text-sm text-muted-foreground mt-1">Messagerie Vidéo Sécurisée</p>
+            <h1 className="text-2xl font-semibold text-foreground">Transaction Order</h1>
+            <p className="text-sm text-muted-foreground mt-1">Ordre de paiement Sécurisée</p>
           </div>
         </div>
 
@@ -57,7 +90,7 @@ export default function LoginPage() {
         <Card className="bg-card border-border">
           <CardHeader className="space-y-1">
             <CardTitle className="text-xl">Connexion</CardTitle>
-            <CardDescription>Accédez à votre espace d'administration sécurisé</CardDescription>
+            <CardDescription>Accédez à votre espace d'échange sécurisé</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -84,19 +117,11 @@ export default function LoginPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Mot de passe</Label>
-                  <button
-                    type="button"
-                    className="text-xs text-primary hover:underline"
-                    onClick={() => router.push("/forgot-password")}
-                  >
-                    Mot de passe oublié ?
-                  </button>
                 </div>
                 <div className="relative">
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="••••••••••••"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     required
@@ -123,12 +148,12 @@ export default function LoginPage() {
         <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-1.5">
             <Shield className="w-3.5 h-3.5 text-primary" />
-            <span>TLS 1.3</span>
+            <span>Hash 256</span>
           </div>
           <div className="h-3 w-px bg-border" />
           <div className="flex items-center gap-1.5">
             <Shield className="w-3.5 h-3.5 text-primary" />
-            <span>E2EE</span>
+            <span>RSA</span>
           </div>
           <div className="h-3 w-px bg-border" />
           <div className="flex items-center gap-1.5">
