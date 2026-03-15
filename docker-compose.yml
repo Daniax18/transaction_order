@@ -1,6 +1,15 @@
 version: '3.9'
 
 services:
+  # Gateway service
+  gateway-service:
+    build: ./src/api-gateway
+    container_name: gateway-service
+    ports:
+      - "8080:8080"
+    networks:
+      - transaction-network
+
   # Rabbit mq
   rabbitmq:
     image: rabbitmq:3-management
