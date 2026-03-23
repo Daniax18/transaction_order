@@ -1,11 +1,13 @@
 package com.daniax18.api_gateway.filter;
 
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
@@ -14,6 +16,8 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 import java.util.Map;
 
+@Component
+@Order(-1)
 public class JwtConfig implements WebFilter {
     private final JwtUtils jwtUtils;
 
@@ -34,6 +38,12 @@ public class JwtConfig implements WebFilter {
      */
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
+        String path = exchange.getRequest().getPath().value();
+        // Routes publiques → bypass
+        if (path.equals("/api/user/login")) {
+            return chain.filter(exchange);
+        }
+        
         String authHeader = exchange.getRequest()
                 .getHeaders()
                 .getFirst(HttpHeaders.AUTHORIZATION);
@@ -64,6 +74,8 @@ public class JwtConfig implements WebFilter {
                     .contextWrite(ReactiveSecurityContextHolder.withAuthentication(authentication));
         }
 
-        return chain.filter(exchange);
+                // Pas de token → 401
+        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+        return exchange.getResponse().setComplete();
     }
 }

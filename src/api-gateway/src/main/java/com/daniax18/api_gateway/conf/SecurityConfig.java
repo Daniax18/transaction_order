@@ -31,8 +31,7 @@ public class SecurityConfig {
                         cors -> cors.configurationSource(corsConfigurationSource())       // Active et configure CORS
                 )
                 .authorizeExchange(exchange -> exchange                       // Définit les règles d'autorisation des requêtes
-                        .pathMatchers("/api/user/login").permitAll()
-                        .anyExchange().authenticated()
+                        .anyExchange().permitAll()
                 )
                 .build();
     }
