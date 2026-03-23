@@ -67,6 +67,42 @@ services:
     networks:
       - transaction-network
 
+  # Kms service
+  kms-db:
+    image: postgres:15
+    container_name: kms-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: kms_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - kms_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - transaction-network
+  
+  kms-service:
+    build: ./src/services/kms-service
+    container_name: kms-service
+    ports:
+      - "8082:8080"
+    environment:
+      RABBITMQ_HOST: rabbitmq
+    depends_on:
+      kms-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - transaction-network
+
   # Log Service
   log-service:
     build: ./src/services/AuditService
@@ -100,3 +136,4 @@ networks:
 
 volumes:
   user_data:
+  kms_data:
