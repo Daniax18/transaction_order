@@ -18,7 +18,8 @@ public interface UserKeyJpaRepository extends JpaRepository<UserKeysJpaEntity, L
             uk.userId,
             uk.keyName,
             uk.status,
-            uk.publicKey
+            uk.publicKey,
+            uk.expiredAt
         )
         FROM UserKeysJpaEntity uk
         WHERE uk.userId = :userId
@@ -35,7 +36,8 @@ public interface UserKeyJpaRepository extends JpaRepository<UserKeysJpaEntity, L
             uk.userId,
             uk.keyName,
             uk.status,
-            uk.publicKey
+            uk.publicKey,
+            uk.expiredAt
         )
         FROM UserKeysJpaEntity uk
         WHERE uk.userId = :userId
