@@ -61,7 +61,7 @@ public class KeyController {
     }
 
     @PostMapping("/revoke")
-    public ResponseEntity<String> revokeKey(@RequestParam Long id){
+    public ResponseEntity<String> revokeKey(@RequestBody Long id){
         try {
             RevokedKeyResult keyName = revokeKeyUseCase.revokeKey(id);
             String result = keyName.keyName() + " revoked successfull !";
