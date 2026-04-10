@@ -1,33 +1,197 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { authService } from "@/lib/services/auth.service"
+import { keyService } from "@/lib/services/key.service"
+import { transactionService } from "@/lib/services/transaction.service"
+import type { UserDto } from "@/lib/types/auth"
+import type { UserKeys } from "@/lib/types/key"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
+import { hashAndSignVideo, readFileAsText } from "@/lib/utils/video-signature"
 import {
   Shield,
   Video,
   Send,
   AlertTriangle,
   CheckCircle2,
-  Euro,
-  Building2,
-  FileText,
   Lock,
-  Clock,
-  Fingerprint,
 } from "lucide-react"
+import { TransactionRequestDto } from "@/lib/types/transaction"
 
 export function TransferOrderForm() {
+  const router = useRouter()
   const [step, setStep] = useState(1)
   const [amount, setAmount] = useState("")
-  const [text, setText] = useState("")
+  const [validity, setValidity] = useState<string>("12")
+  const [selectedKeyId, setSelectedKeyId] = useState<string>("")
   const [isRecording, setIsRecording] = useState(false)
+  const [otherUsers, setOtherUsers] = useState<UserDto[]>([])
+  const [selectedUserId, setSelectedUserId] = useState("")
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true)
+  const [validKeys, setValidKeys] = useState<UserKeys[]>([])
+  const [isLoadingKeys, setIsLoadingKeys] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
+  
+  // Références pour la webcam et l'enregistrement vidéo
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const [recordedVideo, setRecordedVideo] = useState<string | null>(null)
+  const [recordedVideoBlob, setRecordedVideoBlob] = useState<Blob | null>(null)
+  const [recordingTime, setRecordingTime] = useState(0)
+  const [skFile, setSkFile] = useState<File | null>(null)
+
+  useEffect(() => {
+    const fetchOtherUsers = async () => {
+      try {
+        setIsLoadingUsers(true)
+        const users = await authService.getOtherUsers()
+        setOtherUsers(users)
+      } catch (error) {
+        console.error("Erreur lors du chargement des utilisateurs:", error)
+      } finally {
+        setIsLoadingUsers(false)
+      }
+    }
+
+    fetchOtherUsers()
+  }, [])
+
+  // Charger les clés valides quand on arrive à l'étape 3
+  useEffect(() => {
+    if (step === 3) {
+      const fetchValidKeys = async () => {
+        try {
+          setIsLoadingKeys(true)
+          const keys = await keyService.listValidKeys()
+          setValidKeys(keys)
+        } catch (error) {
+          console.error("Erreur lors du chargement des clés valides:", error)
+        } finally {
+          setIsLoadingKeys(false)
+        }
+      }
+
+      fetchValidKeys()
+    }
+  }, [step])
+
+  // Gérer l'enregistrement vidéo
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null
+
+    if (isRecording) {
+      interval = setInterval(() => {
+        setRecordingTime((prev) => {
+          if (prev >= 30) {
+            // Arrêter l'enregistrement automatiquement après 30 secondes
+            if (mediaRecorderRef.current && isRecording) {
+              mediaRecorderRef.current.stop()
+              setIsRecording(false)
+            }
+            if (streamRef.current) {
+              streamRef.current.getTracks().forEach((track) => track.stop())
+              streamRef.current = null
+            }
+            if (videoRef.current) {
+              videoRef.current.srcObject = null
+            }
+            return 30
+          }
+          return prev + 1
+        })
+      }, 1000)
+    } else {
+      setRecordingTime(0)
+    }
+
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [isRecording])
+
+  // Nettoyer le stream quand le composant se démonte ou change d'étape
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop())
+      }
+    }
+  }, [])
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      })
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        videoRef.current.play()
+      }
+
+      streamRef.current = stream
+
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: "video/webm",
+      })
+
+      const chunks: Blob[] = []
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunks.push(event.data)
+        }
+      }
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks, { type: "video/webm" })
+        const videoUrl = URL.createObjectURL(blob)
+        setRecordedVideo(videoUrl)
+        setRecordedVideoBlob(blob)
+      }
+
+      mediaRecorderRef.current = mediaRecorder
+      mediaRecorder.start()
+      setIsRecording(true)
+    } catch (error) {
+      console.error("Erreur lors de l'accès à la webcam:", error)
+      alert("Impossible d'accéder à la webcam. Veuillez vérifier les permissions.")
+    }
+  }
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+    }
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop())
+      streamRef.current = null
+    }
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null
+    }
+  }
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
+  }
 
   const formatAmount = (value: string) => {
     const num = value.replace(/\D/g, "")
@@ -36,6 +200,61 @@ export function TransferOrderForm() {
     }
     return ""
   }
+
+ const handleSubmitTransaction = async () => {
+    if (!selectedKeyId || !recordedVideoBlob || !selectedUserId || !amount || !skFile) {
+      setError("Veuillez remplir tous les champs requis (la clé privée est requise)")
+      return
+    }
+
+    setIsSubmitting(true)
+    setError(null)
+
+    try {
+      const selectedUser = otherUsers.find((u) => u.userId.toString() === selectedUserId)
+      if (!selectedUser?.userId) throw new Error("Utilisateur introuvable")
+
+      const selectedKey = validKeys.find((k) => k.id.toString() === selectedKeyId)
+      if (!selectedKey) throw new Error("Clé introuvable")
+
+      const amountNumber = parseFloat(amount.replace(/\s/g, "").replace(",", "."))
+
+      // Lecture du .pem + hash + signature côté client
+      const privateKeyPem = await readFileAsText(skFile)
+      const { videoHash, videoSignature } = await hashAndSignVideo(recordedVideoBlob, privateKeyPem)
+
+      const dto: TransactionRequestDto = {
+          ReceiverId: selectedUser.userId,
+          Amount: amountNumber,
+          Validity: parseInt(validity),
+          VideoHash: videoHash,
+          VideoSignature: videoSignature,
+          SignatureKeyId: parseInt(selectedKeyId),
+          PublicKey: selectedKey.publicKey,
+          MediaFile: new File([recordedVideoBlob], "video.webm", {
+            type: "video/webm"
+          })
+        };
+
+      await transactionService.createTransaction(dto)
+
+      setSuccess(true)
+      setTimeout(() => {
+        setStep(1); setAmount(""); setSelectedUserId(""); setValidity("12")
+        setSelectedKeyId(""); setRecordedVideo(null); setRecordedVideoBlob(null)
+        setRecordingTime(0); setSuccess(false)
+        router.push("/dashboard")
+      }, 2000)
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message || "Erreur lors de la création de la transaction"
+      setError(typeof msg === "string" ? msg : "Erreur de création")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+
+  const selectedKeyName = validKeys.find((k) => k.id.toString() === selectedKeyId)?.keyName
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -76,7 +295,7 @@ export function TransferOrderForm() {
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="amount">Montant</Label>
+                  <Label htmlFor="amount">Montant :</Label>
                   <div className="relative">
                     <Input
                       id="amount"
@@ -94,18 +313,24 @@ export function TransferOrderForm() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="debit-account">Compte à débiter</Label>
-                  <Select>
-                    <SelectTrigger className="bg-input border-border">
-                      <SelectValue placeholder="Sélectionner un compte" />
+                  <Label htmlFor="debit-account">Donner ordre à :</Label>
+                  <Select value={selectedUserId} onValueChange={setSelectedUserId} disabled={isLoadingUsers}>
+                    <SelectTrigger className="bg-input border-border" id="debit-account">
+                      <SelectValue placeholder={isLoadingUsers ? "Chargement..." : "Sélectionner un compte"} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="main">Francis</SelectItem>
-                      <SelectItem value="secondary">Alice</SelectItem>
+                      {otherUsers.length === 0 && !isLoadingUsers ? (
+                        <SelectItem value="" disabled>Aucun utilisateur disponible</SelectItem>
+                      ) : (
+                        otherUsers.map((user) => (
+                          <SelectItem key={user.userId.toString()} value={user.userId.toString() || ""}>
+                            {user.userName}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
-
               </div>
 
               <div className="flex justify-between">
@@ -134,61 +359,97 @@ export function TransferOrderForm() {
             <CardContent className="space-y-6">
               {/* Zone vidéo */}
               <div className="relative aspect-video bg-secondary rounded-lg overflow-hidden border border-border">
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-                  {!isRecording ? (
-                    <>
-                      <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Video className="w-10 h-10 text-primary" />
+                {recordedVideo && !isRecording ? (
+                  <video
+                    src={recordedVideo}
+                    controls
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <>
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      muted
+                      playsInline
+                      className={`w-full h-full object-cover ${!isRecording ? "hidden" : ""}`}
+                    />
+                    {!isRecording && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+                        <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Video className="w-10 h-10 text-primary" />
+                        </div>
+                        <p className="text-muted-foreground text-center max-w-md">
+                          Cliquez sur "Démarrer l'enregistrement" pour confirmer vocalement votre ordre de virement
+                        </p>
                       </div>
-                      <p className="text-muted-foreground text-center max-w-md">
-                        Cliquez sur "Démarrer l'enregistrement" pour confirmer vocalement votre ordre de virement
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <div className="w-20 h-20 rounded-full bg-destructive/20 flex items-center justify-center animate-pulse">
-                        <div className="w-4 h-4 rounded-full bg-destructive" />
+                    )}
+                    {isRecording && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none">
+                        <div className="w-16 h-16 rounded-full bg-destructive/20 flex items-center justify-center animate-pulse">
+                          <div className="w-4 h-4 rounded-full bg-destructive" />
+                        </div>
+                        <p className="text-foreground font-medium bg-card/80 px-3 py-1 rounded">Enregistrement en cours...</p>
+                        <p className="text-foreground text-sm font-mono bg-card/80 px-3 py-1 rounded">{formatTime(recordingTime)} / 00:30</p>
                       </div>
-                      <p className="text-foreground font-medium">Enregistrement en cours...</p>
-                      <p className="text-muted-foreground text-sm">00:12 / 00:30</p>
-                    </>
-                  )}
-                </div>
+                    )}
+                  </>
+                )}
 
                 {/* Indicateurs sécurité */}
-                <div className="absolute top-4 left-4 flex items-center gap-2">
+                <div className="absolute top-4 left-4 flex items-center gap-2 z-10">
                   <Badge variant="outline" className="bg-card/80 backdrop-blur gap-1.5">
                     <Lock className="w-3 h-3" />
-                    E2EE Actif
+                    SHA-256
                   </Badge>
                 </div>
-                <div className="absolute top-4 right-4 flex items-center gap-2">
+                <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
                   <Badge variant="outline" className="bg-card/80 backdrop-blur gap-1.5">
                     <Shield className="w-3 h-3 text-primary" />
-                    RSA-PSS
+                    RSA
                   </Badge>
                 </div>
               </div>
 
               {/* Boutons */}
               <div className="flex flex-col sm:flex-row gap-3">
-                <Button
-                  variant={isRecording ? "destructive" : "default"}
-                  className="flex-1 gap-2"
-                  onClick={() => setIsRecording(!isRecording)}
-                >
-                  {isRecording ? (
-                    <>
-                      <div className="w-3 h-3 rounded-full bg-white" />
-                      Arrêter l'enregistrement
-                    </>
-                  ) : (
-                    <>
-                      <Video className="w-4 h-4" />
-                      Démarrer l'enregistrement
-                    </>
-                  )}
-                </Button>
+                {recordedVideo && !isRecording ? (
+                  <Button
+                    variant="outline"
+                    className="flex-1 gap-2"
+                    onClick={() => {
+                      setRecordedVideo(null)
+                      setRecordedVideoBlob(null)
+                      setRecordingTime(0)
+                    }}
+                  >
+                    Réenregistrer
+                  </Button>
+                ) : (
+                  <Button
+                    variant={isRecording ? "destructive" : "default"}
+                    className="flex-1 gap-2"
+                    onClick={() => {
+                      if (isRecording) {
+                        stopRecording()
+                      } else {
+                        startRecording()
+                      }
+                    }}
+                  >
+                    {isRecording ? (
+                      <>
+                        <div className="w-3 h-3 rounded-full bg-white" />
+                        Arrêter l'enregistrement
+                      </>
+                    ) : (
+                      <>
+                        <Video className="w-4 h-4" />
+                        Démarrer l'enregistrement
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
 
               <Separator className="bg-border" />
@@ -197,7 +458,7 @@ export function TransferOrderForm() {
                 <Button variant="outline" onClick={() => setStep(1)} className="gap-2">
                   Retour
                 </Button>
-                <Button className="gap-2" disabled={!isRecording} onClick={() => setStep(3)}> 
+                <Button className="gap-2" disabled={!recordedVideo} onClick={() => setStep(3)}> 
                   <Send className="w-4 h-4" />
                   Continuer vers l'insertion clé privé
                 </Button>
@@ -211,31 +472,83 @@ export function TransferOrderForm() {
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-card-foreground">
-                Insertion de clé privée
+                Choix de la clé à utiliser
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="amount">Clé privée</Label>
-                  <div className="relative">
-                    <Input
-                      id="text"
-                      placeholder="Entrez votre clé privée"
-                      value={text}
-                      onChange={(e) => setText(e.target.value)}
-                      className="pr-12 text-lg font-semibold bg-input border-border"
-                    />
-                  </div>
+                  <Label htmlFor="key-select">Choisir clé</Label>
+                  <Select value={selectedKeyId} onValueChange={setSelectedKeyId} disabled={isLoadingKeys}>
+                    <SelectTrigger className="bg-input border-border" id="key-select">
+                      <SelectValue placeholder={isLoadingKeys ? "Chargement..." : "Sélectionner une clé"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {validKeys.length === 0 && !isLoadingKeys ? (
+                        <SelectItem value="" disabled>Aucune clé valide disponible</SelectItem>
+                      ) : (
+                        validKeys.map((key) => (
+                          <SelectItem key={key.id} value={key.id.toString()}>
+                            {key.keyName}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {selectedKeyId && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Clé sélectionnée : {validKeys.find((k) => k.id.toString() === selectedKeyId)?.keyName}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sk-file">
+                    Inserer votre Clé privée (.pem){selectedKeyName ? ` pour ${selectedKeyName}.pem` : ""}
+                  </Label>
+                  <Input
+                    id="sk-file"
+                    type="file"
+                    accept=".pem"
+                    required
+                    disabled={!selectedKeyId}
+                    className="pr-12 text-lg font-semibold bg-input border-border"
+                    onChange={(e) =>
+                      setSkFile(e.target.files && e.target.files[0] ? e.target.files[0] : null)
+                    }
+                  />
+                  {!selectedKeyId && (
+                    <p className="text-xs text-muted-foreground mt-1">Veuillez sélectionner d'abord une clé.</p>
+                  )}
+                  {skFile && <p className="text-xs text-muted-foreground mt-1">Fichier sélectionné: {skFile.name}</p>}
                 </div>
               </div> 
 
+              {error && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              {success && (
+                <Alert className="bg-emerald-500/10 border-emerald-500/20">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  <AlertDescription className="text-emerald-700 dark:text-emerald-400">
+                    Transaction créée avec succès !
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <div className="flex justify-between">
-                <Button variant="outline" onClick={() => setStep(2)} className="gap-2">
+                <Button variant="outline" onClick={() => setStep(2)} className="gap-2" disabled={isSubmitting}>
                   Retour
                 </Button>
-                <Button className="gap-2">
-                 Valider 
+                <Button 
+                  className="gap-2" 
+                  disabled={!selectedKeyId || !recordedVideoBlob || !skFile || isSubmitting || success}
+                  onClick={handleSubmitTransaction}
+                >
+                  {isSubmitting ? "Enregistrement..." : "Valider"}
                 </Button>
               </div>
             </CardContent>

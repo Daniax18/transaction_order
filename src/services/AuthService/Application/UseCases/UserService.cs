@@ -19,8 +19,8 @@ namespace AuthService.Application.UseCases
         private readonly ILogService _logService;
 
         public UserService(
-            UserManager<ApplicationUser> userManager, 
-            SignInManager<ApplicationUser> signInManager, 
+            UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager,
             ApplicationDbContext context,
             ITokenService tokenService,
             ILogService logService
@@ -57,7 +57,7 @@ namespace AuthService.Application.UseCases
                 Role = userRole,
                 IsFirstLogin = user.IsFirstLogin
             };
-            
+
             await _logService.LogInfo(new LogEventDto
             {
                 UserId = user.Id,
@@ -135,6 +135,31 @@ namespace AuthService.Application.UseCases
                 .ToListAsync();
 
             return Result<List<UsersDto>>.Ok(usersWithRoles);
+        }
+
+        public async Task<Result<List<UsersDto>>> GetOtherUsersById(string id)
+        {
+            var users = await _context.Users
+                .Where(u => u.Id != id)
+                .Select(u => new UsersDto
+                {
+                    UserId = u.Id,
+                    UserName = u.UserName ?? string.Empty,
+                    Email = u.Email ?? string.Empty,
+                    Role = _context.UserRoles
+                                .Where(ur => ur.UserId == u.Id)
+                                .Join(_context.Roles,
+                                      ur => ur.RoleId,
+                                      r => r.Id,
+                                      (ur, r) => r.Name)
+                                .FirstOrDefault() ?? "USER"
+                })
+                .ToListAsync();
+
+            if (!users.Any())
+                return Result<List<UsersDto>>.Fail("No users found");
+
+            return Result<List<UsersDto>>.Ok(users);
         }
     }
 }

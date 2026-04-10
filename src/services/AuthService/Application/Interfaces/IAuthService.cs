@@ -11,5 +11,7 @@ namespace AuthService.Application.Interfaces
         Task<string> Logout();
 
         Task<Result<List<UsersDto>>> GetUsersAsync();
+
+        Task<Result<List<UsersDto>>> GetOtherUsersById(string id);
     }
 }

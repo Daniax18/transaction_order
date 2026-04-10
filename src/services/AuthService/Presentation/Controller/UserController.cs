@@ -55,5 +55,18 @@ namespace AuthService.Presentation.Controller
             }
             return Ok(result.Value);
         }
+
+        [HttpGet("others")]
+        public async Task<IActionResult> GetOthersUserById([FromQuery] string userId)
+        {
+            var result = await _authService.GetOtherUsersById(userId);
+
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result.ErrorMessage);
+            }
+
+            return Ok(result.Value);
+        }
     }
 }
