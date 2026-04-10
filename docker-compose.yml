@@ -10,25 +10,6 @@ services:
     networks:
       - transaction-network
 
-  # Rabbit mq
-  rabbitmq:
-    image: rabbitmq:3-management
-    container_name: rabbitmq
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s 
-    networks:
-      - transaction-network
-
   # User Service
   user-db:
     image: postgres:15
@@ -115,11 +96,87 @@ services:
     volumes:
       - ./logs:/app/logs
     depends_on:
-      rabbitmq:
+      minio:
         condition: service_healthy
     restart: on-failure
     networks:
       - transaction-network
+
+  # Transaction Service
+  transaction-db:
+    image: postgres:15
+    container_name: transaction-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: transaction_db
+    ports:
+      - "5436:5432"
+    volumes:
+      - transaction_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - transaction-network
+
+  transaction-service:
+    build: ./src/services/TransactionService
+    container_name: transaction-service
+    ports:
+      - "8083:8080"
+    environment:
+      RABBITMQ_HOST: rabbitmq
+    depends_on:
+      transaction-db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - transaction-network
+
+  # Rabbit mq
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s 
+    networks:
+      - transaction-network
+
+  # Minio Service
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: admin123
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+    - transaction-network
 
   # Frontend (Next.js)
   frontend:
@@ -127,6 +184,13 @@ services:
     container_name: frontend
     ports:
       - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: https://localhost:8080
+    volumes:
+      - ./src/frontend/localhost.pem:/app/localhost.pem # TODO:  A enlever en mode production
+      - ./src/frontend/localhost-key.pem:/app/localhost-key.pem
+    depends_on:
+      - gateway-service
     networks:
       - transaction-network
 
@@ -137,3 +201,5 @@ networks:
 volumes:
   user_data:
   kms_data:
+  transaction_data:
+  minio_data:

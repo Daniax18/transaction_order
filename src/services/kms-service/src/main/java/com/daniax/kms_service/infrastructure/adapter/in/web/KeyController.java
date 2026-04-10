@@ -86,7 +86,7 @@ public class KeyController {
         }
     }
 
-    @GetMapping("/getvalidkeys")
+    @GetMapping("/getvalidekeys")
     public ResponseEntity<Object> getValidUserKeys(@RequestParam String userId){
         try {
             return new ResponseEntity<>(getKeysValidByUserIdUseCase.getKeysValidByUserId(userId), HttpStatus.OK);
