@@ -10,20 +10,40 @@ namespace TransactionService.Infrastructure.Adapter.Inbound.Web
     {
         private readonly ICreateTransactionUseCase _createTransactionUseCase;
         private readonly IVerifyTransactionUseCase _verifyTransactionUseCase;
+        private readonly IGetTransactionUseCase _getTransactionUseCase;
 
         public TransactionController(
             ICreateTransactionUseCase createTransactionUseCase,
-            IVerifyTransactionUseCase verifyTransactionUseCase
+            IVerifyTransactionUseCase verifyTransactionUseCase,
+            IGetTransactionUseCase getTransactionUseCase
         )
         {
             _createTransactionUseCase = createTransactionUseCase;
             _verifyTransactionUseCase = verifyTransactionUseCase;
+            _getTransactionUseCase = getTransactionUseCase;
         }
 
         [HttpPost]
         public async Task<IActionResult> CreateTransaction([FromForm] TransactionCreateRequest request)
         {
             var result = await _createTransactionUseCase.ExecuteAsync(request);
+            if (result.IsSuccess)
+            {
+                return Ok(result.Value);
+            }
+            else
+            {
+                return BadRequest(result.Message);
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetTransactions(
+            [FromQuery] Boolean isOwner,
+            [FromQuery] string userId
+        )
+        {
+            var result = await _getTransactionUseCase.ExecuteAsync(isOwner, userId);
             if (result.IsSuccess)
             {
                 return Ok(result.Value);

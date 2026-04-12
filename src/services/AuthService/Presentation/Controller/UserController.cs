@@ -1,6 +1,7 @@
 ﻿using AuthService.Application.DTOs.login;
 using AuthService.Application.DTOs.register;
 using AuthService.Application.Interfaces;
+using AuthService.Application.UseCases;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -65,6 +66,20 @@ namespace AuthService.Presentation.Controller
             {
                 return BadRequest(result.ErrorMessage);
             }
+
+            return Ok(result.Value);
+        }
+
+        [HttpGet("names")]
+        public async Task<IActionResult> GetUserNamesByIds([FromQuery(Name = "ids")] string[] ids)
+        {
+            if (ids == null || ids.Length == 0)
+                return BadRequest("Aucun id fourni.");
+
+            var result = await _authService.GetUserNamesByIds(ids);
+
+            if (!result.IsSuccess)
+                return StatusCode(500, result.ErrorMessage);
 
             return Ok(result.Value);
         }

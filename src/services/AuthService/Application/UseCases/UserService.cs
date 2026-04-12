@@ -161,5 +161,24 @@ namespace AuthService.Application.UseCases
 
             return Result<List<UsersDto>>.Ok(users);
         }
+
+        public async Task<Result<Dictionary<string, string>>> GetUserNamesByIds(string[] ids)
+        {
+            try
+            {
+                var users = await _userManager.Users
+                    .Where(u => ids.Contains(u.Id))
+                    .Select(u => new { u.Id, u.UserName })
+                    .ToListAsync();
+
+                var dictionary = users.ToDictionary(u => u.Id, u => u.UserName ?? string.Empty);
+
+                return Result<Dictionary<string, string>>.Ok(dictionary);
+            }
+            catch (Exception ex)
+            {
+                return Result<Dictionary<string, string>>.Fail(ex.Message);
+            }
+        }
     }
 }
