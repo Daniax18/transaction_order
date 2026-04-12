@@ -53,7 +53,8 @@ namespace TransactionService.Application.UseCase
                     UserName = userName,
                     DateTransaction = t.createdAt,
                     PublicKey = medias[i]?.PublicKey ?? "",
-                    UpdatedStatusAt = (DateTime) t.updatedStatusAt
+                    UpdatedStatusAt = (DateTime) t.updatedStatusAt,
+                    FileName = medias[i]?.FileName ?? ""
                 };
             }).ToList();
 

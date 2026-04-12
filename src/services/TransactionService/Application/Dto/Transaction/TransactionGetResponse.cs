@@ -10,6 +10,8 @@ namespace TransactionService.Application.Dto.Transaction
         public string StatusTransaction { get; set; } = string.Empty;
         public string PublicKey { get; set; } = string.Empty;
 
+        public string FileName { get; set; } = string.Empty;
+
         public DateTime UpdatedStatusAt { get; set; }
     }
 }
