@@ -10,11 +10,11 @@ namespace TransactionService.Domain.Models
         public string OwnerId { get; private set; } = string.Empty;
         public string ReceiverId { get; private set; } = string.Empty;
         public decimal Amount { get; private set; }
-        public TransactionOrderStatus Status { get; private set; }
-        public int validity { get; private set; }
+        public TransactionOrderStatus Status { get; set; }
+        public int validity { get; private set; }   // TODO : Change to UpperCase
         public DateTime createdAt { get; private set; } = DateTime.UtcNow;
         public DateTime expiredAt { get; private set; }
-        public DateTime updatedStatusAt { get; private set; }
+        public DateTime? updatedStatusAt { get; set; }
 
         public Transaction() { }
 
@@ -33,7 +33,7 @@ namespace TransactionService.Domain.Models
             UpdateValidity(validity);
             createdAt = DateTime.UtcNow;
             expiredAt = createdAt.AddMonths(validity);
-            updatedStatusAt = DateTime.UtcNow;
+            updatedStatusAt = null;
         }
 
         private void UpdateAmount(decimal newAmount)

@@ -13,5 +13,6 @@ namespace AuthService.Application.Interfaces
         Task<Result<List<UsersDto>>> GetUsersAsync();
 
         Task<Result<List<UsersDto>>> GetOtherUsersById(string id);
+        Task<Result<Dictionary<string, string>>> GetUserNamesByIds(string[] ids);
     }
 }

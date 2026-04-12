@@ -1,4 +1,5 @@
-﻿using TransactionService.Domain.Models;
+﻿using TransactionService.Domain.Enum;
+using TransactionService.Domain.Models;
 
 namespace TransactionService.Application.Port.Outbound
 {
@@ -10,6 +11,16 @@ namespace TransactionService.Application.Port.Outbound
 
         public Task DeleteTransactionAsync(
             string transactionId
+        );
+
+        public Task<List<Transaction>> GetTransactionsByUserIdAsync(
+            bool isOwner,
+            string userId
+        );
+
+        public Task UpdateTransactionStatusAsync(
+            string transactionId,
+            TransactionOrderStatus status
         );
     }
 }

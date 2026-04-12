@@ -4,6 +4,8 @@ namespace TransactionService.Application.Dto.Transaction
 {
     public class TransactionVerifyRequest
     {
+        public string? UserId { get; set; }
+
         [Required]
         public string TransactionId { get; set; } = string.Empty;
 

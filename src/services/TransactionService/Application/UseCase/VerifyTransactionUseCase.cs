@@ -1,8 +1,10 @@
 ﻿using System.Security.Cryptography;
 using TransactionService.Application.Dto;
+using TransactionService.Application.Dto.Log;
 using TransactionService.Application.Dto.Transaction;
 using TransactionService.Application.Port.Inbound;
 using TransactionService.Application.Port.Outbound;
+using TransactionService.Domain.Enum;
 
 namespace TransactionService.Application.UseCase
 {
@@ -10,10 +12,18 @@ namespace TransactionService.Application.UseCase
     {
 
         private readonly IMediaPersistence _mediaPersistence;
+        private readonly ILogTransactionService _logTransactionService;
+        private readonly IUpdateStatusUseCase _updateStatusUseCase;
 
-        public VerifyTransactionUseCase(IMediaPersistence mediaPersistence)
+        public VerifyTransactionUseCase(
+            IMediaPersistence mediaPersistence,
+            ILogTransactionService logTransactionService,
+            IUpdateStatusUseCase updateStatusUseCase
+        )
         {
             _mediaPersistence = mediaPersistence;
+            _logTransactionService = logTransactionService;
+            _updateStatusUseCase = updateStatusUseCase;
         }
 
         public async Task<Result<bool>> ExecuteAsync(TransactionVerifyRequest request)
@@ -40,6 +50,12 @@ namespace TransactionService.Application.UseCase
             }
             catch (FormatException ex)
             {
+                await _logTransactionService.LogTransactionAsync(
+                       ActionType.CREATE_TRANSACTION.ToString(),
+                       false,
+                       request.UserId,
+                       "Error Format"
+               );
                 return Result<bool>.NOk(ex.Message);
             }
 
@@ -48,12 +64,24 @@ namespace TransactionService.Application.UseCase
                 using var rsa = System.Security.Cryptography.RSA.Create();
                 rsa.ImportSubjectPublicKeyInfo(publicKeyBytes, out _);
 
-                return Result<bool>.Ok(rsa.VerifyData(
+                bool result = rsa.VerifyData(
                     videoHashBytes,
                     signatureBytes,
                     HashAlgorithmName.SHA256,
                     RSASignaturePadding.Pkcs1
-                ));
+                );
+
+                if (result)
+                    await _updateStatusUseCase.ExecuteAsync(request.TransactionId, TransactionOrderStatus.VERIFIED);
+
+                await _logTransactionService.LogTransactionAsync(
+                        ActionType.CREATE_TRANSACTION.ToString(),
+                        result,
+                        request.UserId,
+                        "Verification Result"
+                );
+
+                return Result<bool>.Ok(result);
             }
             catch (Exception ex)
             {

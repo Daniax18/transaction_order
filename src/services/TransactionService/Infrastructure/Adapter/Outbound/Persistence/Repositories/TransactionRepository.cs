@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TransactionService.Application.Port.Outbound;
+using TransactionService.Domain.Enum;
 using TransactionService.Domain.Models;
 
 namespace TransactionService.Infrastructure.Adapter.Outbound.Persistence.Repositories
@@ -32,11 +33,27 @@ namespace TransactionService.Infrastructure.Adapter.Outbound.Persistence.Reposit
             }
         }
 
+        public async Task<List<Transaction>> GetTransactionsByUserIdAsync(bool isOwner, string userId)
+        {
+            var transactions = await _dbContext.Transactions
+                .Where(t => isOwner ? t.OwnerId == userId : t.ReceiverId == userId)
+                .ToListAsync();
+
+            return transactions;
+        }
+
         public async Task<Transaction> SaveTransactionAsync(Transaction transaction)
         {
             await _dbContext.Transactions.AddAsync(transaction);
             await _dbContext.SaveChangesAsync();
             return transaction;
+        }
+
+        public async Task UpdateTransactionStatusAsync(string transactionId, TransactionOrderStatus status)
+        {
+            var transaction = await _dbContext.Transactions.FirstOrDefaultAsync(t => t.Id == transactionId);
+            transaction.Status = status;
+            await _dbContext.SaveChangesAsync();
         }
     }
 }
