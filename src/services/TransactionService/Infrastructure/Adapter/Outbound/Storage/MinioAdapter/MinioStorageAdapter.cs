@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 using Minio;
+using Minio.DataModel;
 using Minio.DataModel.Args;
 using System.Security.AccessControl;
 using TransactionService.Application.Port.Outbound;
@@ -15,10 +16,6 @@ namespace TransactionService.Infrastructure.Adapter.Outbound.Storage.MinioAdapte
         {
             _minioClient = minioClient;
             _options = options.Value;
-        }
-        public Task<byte[]> GetVideoAsync(string videoUrl)
-        {
-            throw new NotImplementedException();
         }
 
         public async Task<string> SaveVideoAsync(IFormFile mediaContent)
@@ -43,7 +40,7 @@ namespace TransactionService.Infrastructure.Adapter.Outbound.Storage.MinioAdapte
                     .WithContentType(mediaContent.ContentType);
 
                 await _minioClient.PutObjectAsync(putArgs).ConfigureAwait(false);
-                return "Successfully uploaded " + objectName;
+                return objectName;
             }
             catch (Exception ex)
             {
@@ -72,6 +69,31 @@ namespace TransactionService.Infrastructure.Adapter.Outbound.Storage.MinioAdapte
             }
         }
 
+        public async Task<Stream> GetStreamAsync(string objectName)
+        {
+            var ms = new MemoryStream();
+
+            await _minioClient.GetObjectAsync(new GetObjectArgs()
+                .WithBucket(_options.BucketName)
+                .WithObject(objectName)
+                .WithCallbackStream(stream =>
+                {
+                    stream.CopyTo(ms);
+                }));
+
+            ms.Position = 0;
+            return ms;
+        }
+
+        public async Task<(string ContentType, long Size)> GetStatAsync(string objectName)
+        {
+            var stat = await _minioClient.StatObjectAsync(new StatObjectArgs()
+            .WithBucket(_options.BucketName)
+            .WithObject(objectName));
+
+            return (stat.ContentType, stat.Size);
+        }
+
         // ── Private ────────────────────────────────────────────────
 
         private static string GenerateObjectName(string originalFileName)
@@ -81,7 +103,5 @@ namespace TransactionService.Infrastructure.Adapter.Outbound.Storage.MinioAdapte
             return $"videos/{date}/{Guid.NewGuid()}{extension}";
             // → videos/2026/03/29/550e8400-e29b-41d4-a716-446655440000.mp4
         }
-
-       
     }
 }

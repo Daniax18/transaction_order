@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using System.Security.AccessControl;
 using TransactionService.Application.Dto.Transaction;
 using TransactionService.Application.Port.Inbound;
+using TransactionService.Application.Port.Outbound;
 
 namespace TransactionService.Infrastructure.Adapter.Inbound.Web
 {
@@ -11,16 +13,31 @@ namespace TransactionService.Infrastructure.Adapter.Inbound.Web
         private readonly ICreateTransactionUseCase _createTransactionUseCase;
         private readonly IVerifyTransactionUseCase _verifyTransactionUseCase;
         private readonly IGetTransactionUseCase _getTransactionUseCase;
+        private readonly IVideoStorage _videoStorage;
 
         public TransactionController(
             ICreateTransactionUseCase createTransactionUseCase,
             IVerifyTransactionUseCase verifyTransactionUseCase,
-            IGetTransactionUseCase getTransactionUseCase
+            IGetTransactionUseCase getTransactionUseCase,
+            IVideoStorage videoStorage
         )
         {
             _createTransactionUseCase = createTransactionUseCase;
             _verifyTransactionUseCase = verifyTransactionUseCase;
             _getTransactionUseCase = getTransactionUseCase;
+            _videoStorage = videoStorage;
+        }
+
+        [HttpGet("stream/{fileName}")]
+        public async Task<IActionResult> StreamVideo(string fileName)
+        {
+            // 1. Récupère le stream depuis MinIO
+            var stream = await _videoStorage.GetStreamAsync(fileName);
+
+            // 2. Récupère les métadonnées
+            var stat = await _videoStorage.GetStatAsync(fileName);
+
+            return File(stream, stat.ContentType, enableRangeProcessing: true);
         }
 
         [HttpPost]
