@@ -3,6 +3,7 @@ using TransactionService.Application.Dto;
 using TransactionService.Application.Dto.Transaction;
 using TransactionService.Application.Port.Inbound;
 using TransactionService.Application.Port.Outbound;
+using TransactionService.Domain.Models;
 
 namespace TransactionService.Application.UseCase
 {
@@ -39,9 +40,12 @@ namespace TransactionService.Application.UseCase
             if(!userNames.IsSuccess)
                 return Result<List<TransactionGetResponse>>.NOk("Error on getting names : " +userNames.Message);
 
-            var medias = await Task.WhenAll(
-                transactionTemp.Select(t => mediaPersistence.GetMediaByTransactionIdAsync(t.Id)
-            ));
+            var medias = new List<Media?>();
+            foreach (var t in transactionTemp)
+            {
+                var media = await mediaPersistence.GetMediaByTransactionIdAsync(t.Id);
+                medias.Add(media);
+            }
 
             var result = transactionTemp.Select((t, i) =>
             {
@@ -49,12 +53,13 @@ namespace TransactionService.Application.UseCase
                 return new TransactionGetResponse
                 {
                     TransactionId = t.Id,
-                    StatusTransaction = t.Status.ToString(),
+                    Status = t.Status.ToString(),
                     UserName = userName,
-                    DateTransaction = t.createdAt,
+                    Date = t.createdAt,
                     PublicKey = medias[i]?.PublicKey ?? "",
-                    UpdatedStatusAt = (DateTime) t.updatedStatusAt,
-                    FileName = medias[i]?.FileName ?? ""
+                    UpdatedStatusAt = t.updatedStatusAt,
+                    ObjectName = medias[i]?.FileName ?? "",
+                    Amount = t.Amount
                 };
             }).ToList();
 

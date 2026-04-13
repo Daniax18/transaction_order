@@ -23,8 +23,8 @@ const allNavigationItems = [
   { name: "Ordres de virement", href: "/virements", icon: Banknote, roles: ["USER"] },
   { name: "Gestion key", href: "/keys", icon: Key, roles: ["USER"] },
   { name: "Utilisateurs", href: "/users", icon: Users, roles: ["ADMIN"] },
-  { name: "Notifications", href: "/notifications", icon: Bell, roles: ["USER"] },
-  { name: "Audit", href: "/audit", icon: FileText, roles: ["ADMIN"] },
+  //{ name: "Notifications", href: "/notifications", icon: Bell, roles: ["USER"] },
+  //{ name: "Audit", href: "/audit", icon: FileText, roles: ["ADMIN"] },
 ]
 
 export function DashboardSidebar() {

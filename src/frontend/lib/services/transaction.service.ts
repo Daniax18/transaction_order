@@ -31,7 +31,7 @@ export const transactionService = {
       throw new Error("User ID not found in token");
     }
 
-    const response = await api.get<TransactionResponseDto[]>("/transaction/all", {
+    const response = await api.get<TransactionResponseDto[]>("/transaction", {
       params: {
         isOwner: true,
         userId: userId,
@@ -50,7 +50,7 @@ export const transactionService = {
       throw new Error("User ID not found in token");
     }
 
-    const response = await api.get<TransactionResponseDto[]>("/transaction/all", {
+    const response = await api.get<TransactionResponseDto[]>("/transaction", {
       params: {
         isOwner: false,
         userId: userId,
@@ -64,7 +64,11 @@ export const transactionService = {
    * Récupère le stream vidéo en tant que Blob
    */
   async getVideoStream(objectName: string): Promise<Blob> {
-    const response = await api.get(`/transaction/videos/${objectName}`, {
+      const encodedName = objectName
+        .split('/')
+        .map(segment => encodeURIComponent(segment))
+        .join('/');
+    const response = await api.get(`/transaction/stream/${encodedName}`, {
       responseType: "blob",
     });
 
@@ -75,10 +79,15 @@ export const transactionService = {
    * Vérifie une transaction avec la clé publique de l'expéditeur
    */
   async verifyTransaction(
-    transactionId: number,
+    transactionId: string,
     publicKey: string
   ): Promise<boolean> {
+     const userId = getUserId();
+    if (!userId) {
+      throw new Error("User ID not found in token");
+    }
     const response = await api.post<boolean>("/transaction/verify", {
+      userId,
       transactionId,
       publicKey,
     });
