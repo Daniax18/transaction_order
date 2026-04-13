@@ -28,16 +28,31 @@ namespace TransactionService.Infrastructure.Adapter.Inbound.Web
             _videoStorage = videoStorage;
         }
 
-        [HttpGet("stream/{fileName}")]
-        public async Task<IActionResult> StreamVideo(string fileName)
+        [HttpGet("stream/{*objectName}")]
+        public async Task<IActionResult> StreamVideo(string objectName)
         {
-            // 1. Récupère le stream depuis MinIO
-            var stream = await _videoStorage.GetStreamAsync(fileName);
+            try
+            {
+                var stream = await _videoStorage.GetStreamAsync(objectName);
+                var (contentType, size) = await _videoStorage.GetStatAsync(objectName);
 
-            // 2. Récupère les métadonnées
-            var stat = await _videoStorage.GetStatAsync(fileName);
+                var resolvedContentType = string.IsNullOrEmpty(contentType)
+                    ? "video/webm"
+                    : contentType;
 
-            return File(stream, stat.ContentType, enableRangeProcessing: true);
+                Response.Headers.Append("Content-Disposition", $"inline; filename=\"{Path.GetFileName(objectName)}\"");
+                Response.Headers.Append("Content-Length", size.ToString());
+
+                return File(stream, resolvedContentType, enableRangeProcessing: true);
+            }
+            catch (Minio.Exceptions.ObjectNotFoundException)
+            {
+                return NotFound(new { error = $"Vidéo '{objectName}' introuvable" });
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
         }
 
         [HttpPost]
@@ -81,7 +96,7 @@ namespace TransactionService.Infrastructure.Adapter.Inbound.Web
             }
             else
             {
-                return BadRequest(result.Message);
+                return Ok(false);
             }
         }
     }

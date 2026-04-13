@@ -1,10 +1,10 @@
 "use client"
 
+import { CreatedTransactions } from "@/components/created-transactions"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { StatsCards } from "@/components/stats-cards"
-// import { CreatedTransactions } from "@/components/created-transactions"
-// import { TransactionsToVerify } from "@/components/transactions-to-verify"
+import { TransactionsToVerify } from "@/components/transactions-to-verify"
 import { getRole } from "@/lib/utils/jwt.utils"
 import { useEffect, useState } from "react"
 
@@ -37,11 +37,8 @@ export default function DashboardPage() {
 
           {!isAdmin && (
             <div className="grid grid-cols-1 gap-6">
-                <p>
-                    I am not an admin, so I only see transactions related to me.
-                </p>
-              {/* <CreatedTransactions /> */}
-              {/* <TransactionsToVerify /> */}
+               <CreatedTransactions />
+               <TransactionsToVerify />
             </div>
           )}
         </main>

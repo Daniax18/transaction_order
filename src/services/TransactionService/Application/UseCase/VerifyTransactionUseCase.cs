@@ -51,7 +51,7 @@ namespace TransactionService.Application.UseCase
             catch (FormatException ex)
             {
                 await _logTransactionService.LogTransactionAsync(
-                       ActionType.CREATE_TRANSACTION.ToString(),
+                       ActionType.VERIFICATION_TRANSACTION.ToString(),
                        false,
                        request.UserId,
                        "Error Format"
@@ -75,7 +75,7 @@ namespace TransactionService.Application.UseCase
                     await _updateStatusUseCase.ExecuteAsync(request.TransactionId, TransactionOrderStatus.VERIFIED);
 
                 await _logTransactionService.LogTransactionAsync(
-                        ActionType.CREATE_TRANSACTION.ToString(),
+                        ActionType.VERIFICATION_TRANSACTION.ToString(),
                         result,
                         request.UserId,
                         "Verification Result"
